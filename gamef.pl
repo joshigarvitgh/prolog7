@@ -1,11 +1,10 @@
-% Autor: Tom René Hennig
-% Datum: 15.01.2019
-
 %%% Database
 :- dynamic words/1.
+:- dynamic saved/0.
 
 %%% Main program
 main :-
+    assert(saved),
     repeat,
     print_menu,
     write("Command: "),
@@ -18,7 +17,7 @@ main :-
       Command == 'd' -> delete_word ;
       Command == 'w' -> write_database ;
       Command == 'g' -> guess_word ;
-      Command == 'e' -> ! ;
+      Command == 'e' -> check_for_saved, ! ;
       writeln("Please choose one of the options.")
     ),
     fail.
@@ -37,6 +36,10 @@ print_menu :-
 
 read_database :-
     writeln("Reading database... "),
+    (access_file("database.txt", read) ->
+        true ;
+        writeln("File not accessible."), false
+    ),
     open("database.txt", read, DatabaseFD),
     repeat,
     read_string(DatabaseFD, "\n\r", " \t", End, Word),
@@ -49,10 +52,16 @@ read_database :-
     ),
     (End == -1 -> ! ; fail),            % repeat until EOF
     close(DatabaseFD),
+    assert(saved),
     writeln("Success").
 
 write_database :-
+    assert(saved),
     writeln("Writing database..."),
+    (access_file("database.txt", read) ->
+        writeln("File will be overridden.") ;
+        true
+    ),
     open("database.txt", write, DatabaseFD), !,
     words(Word),
     writeln(DatabaseFD, Word),
@@ -70,7 +79,7 @@ add_word :-
         writeln("Word is already in the database"), true ;
         (string_length(Word, 0) ->
             writeln("Trying to add empty string to the database...") ;
-            assert(words(Word))
+            assert(words(Word)), retract(saved)
         )
     ).
 
@@ -78,8 +87,21 @@ delete_word :-
     write("Word to delete from the database: "),
     read_string(user_input, "\n\r", " \t", _, Word),
     (words(Word) ->
-        retractall(words(Word)) ;
+        retractall(words(Word)), retract(saved) ;
         writeln("Word is not in the database")
+    ).
+
+check_for_saved :-
+    (saved ->
+        true ;
+        repeat,
+            write("Unsaved changes. Are you sure you want to exit? (y/n) "),
+            get_single_char(CommandCode),
+            char_code(Command, CommandCode),
+            ( Command == 'y' -> write_database ;
+              Command == 'n' -> true ;
+              writeln("Invalid input!"), false
+            )
     ).
 
 guess_word :- convert_to_list(Words), game(Words).
