@@ -1,3 +1,6 @@
+% Autor: Tom René Hennig
+% Datum: 15.01.2019
+
 %%% Database
 :- dynamic words/1.
 
@@ -33,20 +36,27 @@ print_menu :-
     writeln("  e - end the game").
 
 read_database :-
-    write("Reading database... "),
+    writeln("Reading database... "),
     open("database.txt", read, DatabaseFD),
     repeat,
     read_string(DatabaseFD, "\n\r", " \t", End, Word),
-    (words(Word) -> true ; assert(words(Word))),    % add only new word to list
-    (End == -1 -> ! ; fail),                        % repeat until EOF
+    (words(Word) ->
+        true ;
+        (string_length(Word, 0) ->
+            writeln("Trying to add empty string to the database...") ;
+            assert(words(Word))         % add only new word to list
+        )
+    ),
+    (End == -1 -> ! ; fail),            % repeat until EOF
     close(DatabaseFD),
     writeln("Success").
 
 write_database :-
     writeln("Writing database..."),
-    open("database.txt", write, DatabaseFD),
+    open("database.txt", write, DatabaseFD), !,
     words(Word),
-    writeln(DatabaseFD, Word).
+    writeln(DatabaseFD, Word),
+    flush_output(DatabaseFD).
 
 print_database :-
     writeln("Current content of the database:"),
@@ -58,7 +68,10 @@ add_word :-
     read_string(user_input, "\n\r", " \t", _, Word),
     (words(Word) ->
         writeln("Word is already in the database"), true ;
-        assert(words(Word))
+        (string_length(Word, 0) ->
+            writeln("Trying to add empty string to the database...") ;
+            assert(words(Word))
+        )
     ).
 
 delete_word :-
