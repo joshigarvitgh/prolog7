@@ -98,7 +98,7 @@ check_for_saved :-
             write("Unsaved changes. Are you sure you want to exit? (y/n) "),
             get_single_char(CommandCode),
             char_code(Command, CommandCode),
-            ( Command == 'y' -> write_database ;
+            ( Command == 'y' -> ! ;
               Command == 'n' -> true ;
               writeln("Invalid input!"), false
             )
